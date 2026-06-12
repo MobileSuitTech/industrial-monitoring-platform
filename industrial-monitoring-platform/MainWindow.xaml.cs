@@ -32,6 +32,8 @@ namespace industrial_monitoring_platform
 
         private ObservableCollection<double> _temperatureValues = new();
         private LineSeries<double> _temperatureSeries;
+        private double? _observedMin = null;
+        private double? _observedMax = null;
 
 
         public MainWindow()
@@ -59,7 +61,7 @@ namespace industrial_monitoring_platform
             _readings = LoadCsv("data/sensor_readings.csv");
 
             _timer.Interval = TimeSpan.FromSeconds(1);
-            //_timer.Interval = TimeSpan.FromMilliseconds(200);
+            //_timer.Interval = TimeSpan.FromMilliseconds(100);
             _timer.Tick += Timer_Tick;
             _timer.Start();
 
@@ -80,18 +82,30 @@ namespace industrial_monitoring_platform
             TankLevelText.Text = $"Tank Level: {reading.TankLevelPercent} %";
 
 
-            //manage the chart
+            //chart
             _temperatureValues.Add(reading.TemperatureC);
             if(_temperatureValues.Count > 20)//30
             {
                 _temperatureValues.RemoveAt(0);
             }
+            if (_observedMin == null || reading.TemperatureC < _observedMin)
+                _observedMin = reading.TemperatureC;
 
+            if (_observedMax == null || reading.TemperatureC > _observedMax)
+                _observedMax = reading.TemperatureC;
+            TemperatureChart.YAxes = new Axis[]
+            {
+                new Axis
+                    {
+                        MinLimit = _observedMin - 0.2,
+                        MaxLimit = _observedMax + 0.2
+                    }
+            };
 
-            //running past data table
-            _visibleReadings.Add(reading);
+            //data table
+            _visibleReadings.Insert(0,reading);
             if (_visibleReadings.Count > 20)
-                _visibleReadings.RemoveAt(0);
+                _visibleReadings.RemoveAt(_visibleReadings.Count - 1);
             ReadingsGrid.ItemsSource = null;
             ReadingsGrid.ItemsSource = _visibleReadings;
 

@@ -6,18 +6,34 @@
         xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
         xmlns:local="clr-namespace:industrial_monitoring_platform"
         mc:Ignorable="d"
-        Title="MainWindow" Height="715" Width="1060">
+        Title="Mobile Suit Tech" Height="700" Width="1500">
     
-    <Grid>
-        <StackPanel Margin="20">
+    <Grid
+        Margin="10">
 
-            <TextBlock Text="Industrial Monitoring Platform"
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="2*"/>
+        </Grid.ColumnDefinitions>
+
+        <TextBlock Grid.Row="0"
+               Grid.ColumnSpan="2"
+               Text="Industrial Monitoring Platform"
                FontSize="24"
                FontWeight="Bold"
                Margin="0,0,0,10"/>
 
-            <Separator Margin="0,5"/>
 
+        <StackPanel Margin="0,0,15,0"
+                    Grid.Row="1"
+                    Grid.Column="0">
+            <Separator Margin="0,13"/>
             <TextBlock x:Name="TimestampText"
                Text="Time"
                FontSize="16"
@@ -43,43 +59,47 @@
                FontSize="16"
                Margin="0,5"/>
 
-            <Separator Margin="0,5"/>
+            <Separator Margin="0,10"/>
+
+            <TextBlock x:Name="StatusText"
+               FontSize="24"
+               FontWeight="Bold"
+               Text="System Status: OK"
+               Margin="0,0,0,0"
+            />
+            <Separator Margin="0,13"/>
+        </StackPanel>
+
+        <StackPanel
+            Grid.Row="1"
+            Grid.Column="1">
             
             <TextBlock Text="Temperature Trend"
                FontSize="18"
                FontWeight="Bold"
                Margin="0,20,0,5"/>
+            
             <lvc:CartesianChart x:Name="TemperatureChart"
                Height="150"/>
-
-
-            <Separator Margin="0,5"/>
-            
-            <TextBlock x:Name="StatusText"
-               FontSize="24"
-               FontWeight="Bold"
-               Text="System Status: OK"
-               Margin="0,15,0,15"
-            />
-
-            <DataGrid x:Name="ReadingsGrid"
-                  Height="150"
-                  AutoGenerateColumns="False"
-                  Margin="0, 10, 0, 0">
-                      
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Time" Binding="{Binding Timestamp}" Width="*"/>
-                    <DataGridTextColumn Header="Temp (°C)" Binding="{Binding TemperatureC}" Width="*"/>
-                    <DataGridTextColumn Header="Pressure (bar)" Binding="{Binding PressureBar}" Width="*"/>
-                    <DataGridTextColumn Header="Flow (L/min)" Binding="{Binding FlowRateLMin}" Width="*"/>
-                    <DataGridTextColumn Header="Level (%)" Binding="{Binding TankLevelPercent}" Width="*"/>
-                </DataGrid.Columns>
-                
-            </DataGrid>
-
         </StackPanel>
 
+        <DataGrid x:Name="ReadingsGrid"
+                      Grid.Row="2"
+                     Grid.Column="0"
 
+                  AutoGenerateColumns="False"
+                  Margin="0, 10, 0, 0"
+                  IsReadOnly="True">
+
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Time" Binding="{Binding Timestamp}" Width="*"/>
+                <DataGridTextColumn Header="Temp (°C)" Binding="{Binding TemperatureC}" Width="*"/>
+                <DataGridTextColumn Header="Pressure (bar)" Binding="{Binding PressureBar}" Width="*"/>
+                <DataGridTextColumn Header="Flow (L/min)" Binding="{Binding FlowRateLMin}" Width="*"/>
+                <DataGridTextColumn Header="Level (%)" Binding="{Binding TankLevelPercent}" Width="*"/>
+            </DataGrid.Columns>
+
+        </DataGrid>
 
     </Grid>
     
