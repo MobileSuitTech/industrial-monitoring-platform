@@ -68,6 +68,13 @@
                Margin="0,0,0,0"
             />
             <Separator Margin="0,13"/>
+            
+            <TextBlock Text="Historian Stats" FontWeight="Bold" Margin="0,5,0,5"/>
+            <TextBlock x:Name="DatabaseRowsText" Text="Database Rows: -" />
+            <TextBlock x:Name="AverageTempText" Text="Average Temp: -" />
+            <TextBlock x:Name="MinimumTempText" Text="Minimum Temp: -" />
+            <TextBlock x:Name="MaximumTempText" Text="Maximum Temp: -" />
+            
         </StackPanel>
 
         <StackPanel

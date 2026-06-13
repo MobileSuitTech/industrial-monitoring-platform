@@ -1,4 +1,11 @@
-﻿using System.IO;
+﻿using LiveChartsCore;
+using LiveChartsCore.SkiaSharpView;
+using Microsoft.Data.Sqlite;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Printing;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -10,13 +17,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
-using System;
-using System.Collections.Generic;
-using LiveChartsCore;
-using LiveChartsCore.SkiaSharpView;
-using System.Collections.ObjectModel;
-using Microsoft.Data.Sqlite;
-using System.Printing;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace industrial_monitoring_platform
 {
@@ -82,17 +83,21 @@ namespace industrial_monitoring_platform
 
             InsertSensorReading(reading);
 
-
-            //DB actions
-            int rowCount = CountSensorReadings();
-            Title = $"Industrial Monitoring Platform - DB rows: {rowCount}";
-
             //live readings
             TimestampText.Text = $"Time: {reading.Timestamp}";
             TemperatureText.Text = $"Temperature: {reading.TemperatureC} °C";
             PressureText.Text = $"Pressure: {reading.PressureBar} bar";
             FlowRateText.Text = $"Flow Rate: {reading.FlowRateLMin} L/min";
             TankLevelText.Text = $"Tank Level: {reading.TankLevelPercent} %";
+
+            //DB reads
+            int rowCount = CountSensorReadings();
+            var stats = GetTemperatureStatistics();
+
+            DatabaseRowsText.Text = $"Database Rows: {rowCount}";
+            AverageTempText.Text = $"Average Temp: {stats.average:F1} °C";
+            MinimumTempText.Text = $"Minimum Temp: {stats.minimum:F2} °C";
+            MaximumTempText.Text = $"Maximum Temp: {stats.maximum:F3} °C";
 
 
             //chart
@@ -234,6 +239,31 @@ namespace industrial_monitoring_platform
 
             command.ExecuteNonQuery();
 
+        }
+
+        private (double average, double minimum, double maximum) GetTemperatureStatistics()
+        {
+            using var connection = new SqliteConnection("Data Source=data/industrial.db");
+            connection.Open();
+
+            using var command = connection.CreateCommand();
+
+            command.CommandText =
+                """
+                    SELECT 
+                        AVG(Temperature),
+                        MIN(Temperature),
+                        MAX(Temperature)
+                    FROM SensorReadings;
+                """;
+
+            using var reader = command.ExecuteReader();
+
+            if(reader.Read())//database has rows, otherwise dangerous
+            {
+                return (reader.GetDouble(0), reader.GetDouble(1), reader.GetDouble(2));
+            }
+            return (0, 0, 0);//database does not have rows
         }
 
         private int CountSensorReadings()
