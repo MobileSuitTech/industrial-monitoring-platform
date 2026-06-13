@@ -15,12 +15,12 @@ using System.Collections.Generic;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using System.Collections.ObjectModel;
+using Microsoft.Data.Sqlite;
+using System.Printing;
 
 namespace industrial_monitoring_platform
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
+
     public partial class MainWindow : Window
     {
         private List<SensorReading> _readings = new();
@@ -40,6 +40,12 @@ namespace industrial_monitoring_platform
         {
             InitializeComponent();
 
+            InitializeDatabase();
+            /*
+            MessageBox.Show(
+            $"Loaded {LoadRecentReadingsFromDatabase(20).Count} most recent readings from the database.\n" + 
+            $" Database contains {CountSensorReadings()} readings.");
+            */
             TemperatureText.Text = "Temperature: 72.4 °C";
             PressureText.Text = "Pressure: 4.8 bar";
             FlowRateText.Text = "Flow Rate: 120 L/min";
@@ -58,10 +64,10 @@ namespace industrial_monitoring_platform
                 _temperatureSeries
             };
 
+            //incoming sensor data
             _readings = LoadCsv("data/sensor_readings.csv");
 
-            _timer.Interval = TimeSpan.FromSeconds(1);
-            //_timer.Interval = TimeSpan.FromMilliseconds(100);
+            _timer.Interval = TimeSpan.FromSeconds(1);//FromMilliseconds(100);
             _timer.Tick += Timer_Tick;
             _timer.Start();
 
@@ -73,6 +79,13 @@ namespace industrial_monitoring_platform
                 return;
 
             var reading = _readings[_currentIndex];
+
+            InsertSensorReading(reading);
+
+
+            //DB actions
+            int rowCount = CountSensorReadings();
+            Title = $"Industrial Monitoring Platform - DB rows: {rowCount}";
 
             //live readings
             TimestampText.Text = $"Time: {reading.Timestamp}";
@@ -146,6 +159,121 @@ namespace industrial_monitoring_platform
             }
 
             return readings;
+        }
+
+        private List<SensorReading> LoadRecentReadingsFromDatabase(int count)
+        {
+            var readings = new List<SensorReading>();
+
+            using var connection = new SqliteConnection("Data Source=data/industrial.db");
+            connection.Open();
+
+            using var command = connection.CreateCommand();
+            command.CommandText = 
+                """
+                SELECT Timestamp,
+                Temperature,
+                Pressure,
+                Flow,
+                TankLevel
+                FROM SensorReadings
+                ORDER BY Id DESC
+                LIMIT $count;
+                """;
+
+            command.Parameters.AddWithValue("$count", count);
+
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                readings.Add(new SensorReading
+                {
+                    Timestamp = DateTime.Parse(reader.GetString(0)),
+                    TemperatureC = reader.GetDouble (1),
+                    PressureBar = reader.GetDouble (2),
+                    FlowRateLMin = reader.GetDouble (3),
+                    TankLevelPercent = reader.GetDouble (4)
+                });
+            }
+
+            return readings;
+        }
+
+        private void InsertSensorReading(SensorReading reading)
+        {
+            using var connection = new SqliteConnection("Data Source=data/industrial.db");
+            connection.Open();
+
+            using var command = connection.CreateCommand();
+
+            command.CommandText =
+                """
+                INSERT INTO SensorReadings
+                (
+                    Timestamp,
+                    Temperature,
+                    Pressure,
+                    Flow,
+                    TankLevel
+                )
+                VALUES
+                (
+                    $timestamp,
+                    $temperature,
+                    $pressure,
+                    $flow,
+                    $tankLevel
+                );
+                """;
+
+            command.Parameters.AddWithValue("$timestamp", reading.Timestamp.ToString("yyyy-MM-dd HH:mm:ss"));
+            command.Parameters.AddWithValue("$temperature", reading.TemperatureC);
+            command.Parameters.AddWithValue("$pressure", reading.PressureBar);
+            command.Parameters.AddWithValue("$flow", reading.FlowRateLMin);
+            command.Parameters.AddWithValue("$tankLevel", reading.TankLevelPercent);
+
+            command.ExecuteNonQuery();
+
+        }
+
+        private int CountSensorReadings()
+        {
+            using var connection = new SqliteConnection("Data Source=data/industrial.db");
+            connection.Open();
+
+            using var command = connection.CreateCommand();
+
+            command.CommandText =
+                """
+                SELECT COUNT(*)
+                FROM SensorReadings;
+                """;
+
+            return Convert.ToInt32(command.ExecuteScalar());
+
+        }
+
+        private void InitializeDatabase()
+        {
+            using var connection = new SqliteConnection("Data Source=data/industrial.db");
+            connection.Open();
+
+            using var command = connection.CreateCommand();
+
+            command.CommandText =
+                """
+                CREATE TABLE IF NOT EXISTS SensorReadings
+                (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Timestamp TEXT NOT NULL,
+                    Temperature REAL NOT NULL,
+                    Pressure REAL NOT NULL,
+                    Flow REAL NOT NULL,
+                    TankLevel REAL NOT NULL
+                );
+                """;
+
+            command.ExecuteNonQuery();
         }
 
         private string GetStatus(SensorReading r)
